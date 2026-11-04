@@ -1,4 +1,4 @@
-import { services, sectors, type ServiceId, type SectorId } from "./content";
+import { services, sectors, type ServiceId, type SectorId } from "./content.ts";
 export type AssessmentFields={service:ServiceId;sector:SectorId|"";area:string;name:string;email:string;phone:string;organization:string;context:string};
 export type AssessmentErrors=Partial<Record<keyof AssessmentFields,string>>;
 export const allowedService=(value:unknown):ServiceId => typeof value==="string" && (value==="not-sure"||services.some(s=>s.id===value)) ? value as ServiceId : "not-sure";
