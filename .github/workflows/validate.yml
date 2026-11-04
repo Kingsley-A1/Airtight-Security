@@ -1,0 +1,72 @@
+name: Validate Airtight concept
+on:
+  push:
+    branches: ["feat/airtight-concept-site"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout without saved credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate dependency lockfile without lifecycle scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit updated lockfile to feature branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/feat/airtight-concept-site'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("node:fs");
+            const cp = require("node:child_process");
+            const diff = cp.execSync("git status --porcelain package-lock.json").toString().trim();
+            if (!diff) return;
+            const content = fs.readFileSync("package-lock.json").toString("base64");
+            let sha;
+            try {
+              const response = await github.rest.repos.getContent({
+                owner: context.repo.owner, repo: context.repo.repo,
+                path: "package-lock.json", ref: context.ref
+              });
+              if (!Array.isArray(response.data)) sha = response.data.sha;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            await github.rest.repos.createOrUpdateFileContents({
+              owner: context.repo.owner, repo: context.repo.repo,
+              path: "package-lock.json", message: "chore: commit reproducible dependency lockfile",
+              content, sha, branch: "feat/airtight-concept-site"
+            });
+      - name: Install pinned dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Unit tests
+        run: npm test
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser acceptance tests
+        run: npm run test:e2e
+      - name: Upload desktop/mobile screenshots and test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: airtight-browser-evidence
+          path: |
+            artifacts/
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore

@@ -1,0 +1,2 @@
+import Link from "next/link";import {Kicker} from "@/components/Primitives";
+export default function NotFound(){return <section className="section empty-page"><div className="container"><Kicker>404 / Page unavailable</Kicker><h1>That page isn’t part of this plan.</h1><p>Explore the concept through our proposed services and sectors.</p><Link className="btn btn-primary" href="/">Return home <span aria-hidden="true">↗</span></Link></div></section>}
