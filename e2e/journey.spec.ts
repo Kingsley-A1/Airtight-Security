@@ -46,6 +46,13 @@ test("mobile navigation supports keyboard closure", async ({ page, isMobile }) =
 test("capture desktop and mobile visual evidence", async ({ page, isMobile }) => {
   fs.mkdirSync("artifacts",{recursive:true});
   await page.goto("/");
+  const photoImages=page.locator("main .photo img");
+  for(let i=0;i<await photoImages.count();i++){
+    const image=photoImages.nth(i);
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(async()=>image.evaluate(el=>el instanceof HTMLImageElement && el.complete && el.naturalWidth>0),{timeout:15000}).toBe(true);
+  }
+  await page.evaluate(()=>window.scrollTo(0,0));
   await page.screenshot({path:isMobile?"artifacts/home-mobile.png":"artifacts/home-desktop.png",fullPage:true});
   await page.goto("/contact?service=on-site-guarding&sector=commercial-premises");
   await page.screenshot({path:isMobile?"artifacts/contact-mobile.png":"artifacts/contact-desktop.png",fullPage:true});
