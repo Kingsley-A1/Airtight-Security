@@ -268,3 +268,18 @@ h2{font-size:clamp(2.15rem,9.6vw,3.5rem)}
 @media(max-width:390px){.container{padding-inline:20px}.hero h1{font-size:3.1rem}.hero-bottom{font-size:.58rem}.steps{grid-template-columns:1fr}.step,.step:nth-child(2),.step:nth-child(3){border-right:0;border-bottom:1px solid #3e5b74;padding:23px 0;min-height:unset}.step:last-child{border:0}.step:not(:first-child){padding-left:0}.step-num{margin-bottom:13px}.service-item{grid-template-columns:30px 1fr}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
 
+
+
+/* 701–900px must also remain readable when browser text is enlarged to 200%. */
+h1,h2,h3 { overflow-wrap:break-word }
+@media (min-width:701px) and (max-width:900px) {
+  .split,.faq-layout,.contact-grid,.page-hero-grid,.detail-grid,.sector-grid,.risk-list { grid-template-columns:1fr }
+  .guidance-grid,.account-grid,.about-promise { grid-template-columns:1fr }
+  .service-row { grid-template-columns:45px minmax(0,1fr) 35px }
+  .service-row p { display:none }
+  .form-fields { grid-template-columns:1fr }
+  .footer-main,.footer-bottom { flex-direction:column }
+  .footer-bottom p:last-child { text-align:left }
+  .page-hero-aside { max-width:660px }
+  .split .photo { min-height:420px }
+}
