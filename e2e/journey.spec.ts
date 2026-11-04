@@ -20,7 +20,7 @@ test("commercial-to-guarding-to-assessment journey retains context and sends no 
   await expect(page.locator("#service")).toHaveValue("on-site-guarding");
   await expect(page.locator("#sector")).toHaveValue("commercial-premises");
   await page.getByRole("button",{name:/Complete demo request/}).click();
-  await expect(page.getByRole("alert")).toContainText("highlighted fields");
+  await expect(page.locator(".form-errors")).toContainText("highlighted fields");
   await page.locator("#area").fill("Calabar");
   await page.locator("#name").fill("Example Visitor");
   await page.locator("#email").fill("demo@example.com");
@@ -49,4 +49,19 @@ test("capture desktop and mobile visual evidence", async ({ page, isMobile }) =>
   await page.screenshot({path:isMobile?"artifacts/home-mobile.png":"artifacts/home-desktop.png",fullPage:true});
   await page.goto("/contact?service=on-site-guarding&sector=commercial-premises");
   await page.screenshot({path:isMobile?"artifacts/contact-mobile.png":"artifacts/contact-desktop.png",fullPage:true});
+});
+test("layouts do not overflow at 360, 390, 768 and 1440 CSS pixels",async ({page})=>{
+  for(const width of [360,390,768,1440]){
+    await page.setViewportSize({width,height:900});
+    for(const path of ["/","/solutions","/sectors","/contact"]){
+      await page.goto(path);
+      const dimensions=await page.evaluate(()=>({scrollWidth:document.documentElement.scrollWidth,innerWidth:window.innerWidth}));
+      expect(dimensions.scrollWidth, `overflow at ${width}px on ${path}`).toBeLessThanOrEqual(dimensions.innerWidth+1);
+    }
+  }
+});
+test("reduced-motion preference disables animated scrolling",async ({page})=>{
+  await page.emulateMedia({reducedMotion:"reduce"});
+  await page.goto("/");
+  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior)).toBe("auto");
 });
