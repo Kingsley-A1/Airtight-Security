@@ -98,6 +98,7 @@ test("200 percent text enlargement retains content within the reading viewport",
     await page.goto(path);
     await page.evaluate(()=>{document.documentElement.style.fontSize="32px"});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
-    expect(overflow, `text zoom overflow on ${path}`).toBeLessThanOrEqual(1);
+    const offenders=overflow>1 ? await page.evaluate(()=>Array.from(document.querySelectorAll("body *")).map(el=>({element:el.tagName.toLowerCase()+"."+String(el.className).split(" ").slice(0,2).join("."),right:Math.round(el.getBoundingClientRect().right),left:Math.round(el.getBoundingClientRect().left),text:(el.textContent||"").trim().slice(0,48)})).filter(x=>x.right>window.innerWidth+3).sort((a,b)=>b.right-a.right).slice(0,18)) : [];
+    expect(overflow, `text zoom overflow on ${path}; offenders: ${JSON.stringify(offenders)}`).toBeLessThanOrEqual(1);
   }
 });
