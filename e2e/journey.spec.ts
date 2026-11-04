@@ -65,3 +65,32 @@ test("reduced-motion preference disables animated scrolling",async ({page})=>{
   await page.goto("/");
   expect(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior)).toBe("auto");
 });
+
+test("representative images load when they enter the viewport",async ({page})=>{
+  await page.goto("/");
+  const photos=page.locator("main .photo img");
+  await expect(photos).toHaveCount(3);
+  for(let i=0;i<3;i++){
+    const img=photos.nth(i);
+    await img.scrollIntoViewIfNeeded();
+    await expect.poll(async()=>img.evaluate(el=>el instanceof HTMLImageElement && el.complete && el.naturalWidth>0),{timeout:20000}).toBe(true);
+  }
+});
+test("no uncaught client errors during main buyer journey",async ({page})=>{
+  const errors:string[]=[];
+  page.on("pageerror",err=>errors.push(err.message));
+  await page.goto("/");
+  await page.goto("/sectors/commercial-premises");
+  await page.goto("/solutions/on-site-guarding?sector=commercial-premises");
+  await page.goto("/contact?service=on-site-guarding&sector=commercial-premises");
+  expect(errors).toEqual([]);
+});
+test("200 percent text enlargement retains content within the reading viewport",async ({page})=>{
+  await page.setViewportSize({width:768,height:900});
+  for(const path of ["/","/contact"]){
+    await page.goto(path);
+    await page.evaluate(()=>{document.documentElement.style.fontSize="32px"});
+    const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+    expect(overflow, `text zoom overflow on ${path}`).toBeLessThanOrEqual(1);
+  }
+});
