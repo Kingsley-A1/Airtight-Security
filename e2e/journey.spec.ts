@@ -1,0 +1,52 @@
+import { test, expect } from "@playwright/test";
+import fs from "node:fs";
+const routes = ["/","/solutions","/solutions/on-site-guarding","/sectors","/sectors/commercial-premises","/about","/contact"];
+test("all seven pages load directly", async ({ page }) => {
+  for (const path of routes) {
+    const result = await page.goto(path);
+    expect(result?.ok()).toBeTruthy();
+    await expect(page.locator("main h1")).toBeVisible();
+  }
+});
+test("commercial-to-guarding-to-assessment journey retains context and sends no data", async ({ page }) => {
+  const posts: string[] = [];
+  page.on("request", request => { if (request.method() === "POST") posts.push(request.url()); });
+  await page.goto("/");
+  await page.getByRole("link",{name:/Commercial premises/}).first().click();
+  await expect(page).toHaveURL(/sectors\/commercial-premises/);
+  await page.getByRole("link",{name:/See complete service detail/}).click();
+  await expect(page).toHaveURL(/on-site-guarding\?sector=commercial-premises/);
+  await page.locator('a[href*="/contact?service=on-site-guarding"]').first().click();
+  await expect(page.locator("#service")).toHaveValue("on-site-guarding");
+  await expect(page.locator("#sector")).toHaveValue("commercial-premises");
+  await page.getByRole("button",{name:/Complete demo request/}).click();
+  await expect(page.getByRole("alert")).toContainText("highlighted fields");
+  await page.locator("#area").fill("Calabar");
+  await page.locator("#name").fill("Example Visitor");
+  await page.locator("#email").fill("demo@example.com");
+  await page.getByRole("button",{name:/Complete demo request/}).click();
+  await expect(page.getByRole("heading",{name:"Demo request complete—no enquiry has been sent."})).toBeVisible();
+  expect(posts).toEqual([]);
+  await page.getByRole("button",{name:/Start another demonstration/}).click();
+  await expect(page.locator("#sector")).toHaveValue("commercial-premises");
+});
+test("invalid query values fall back safely", async ({ page }) => {
+  await page.goto("/contact?service=invalid&sector=bad");
+  await expect(page.locator("#service")).toHaveValue("not-sure");
+  await expect(page.locator("#sector")).toHaveValue("");
+});
+test("mobile navigation supports keyboard closure", async ({ page, isMobile }) => {
+  if (!isMobile) return;
+  await page.goto("/");
+  await page.getByRole("button",{name:"Open navigation"}).click();
+  await expect(page.getByRole("navigation",{name:"Mobile navigation"})).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button",{name:"Open navigation"})).toHaveAttribute("aria-expanded","false");
+});
+test("capture desktop and mobile visual evidence", async ({ page, isMobile }) => {
+  fs.mkdirSync("artifacts",{recursive:true});
+  await page.goto("/");
+  await page.screenshot({path:isMobile?"artifacts/home-mobile.png":"artifacts/home-desktop.png",fullPage:true});
+  await page.goto("/contact?service=on-site-guarding&sector=commercial-premises");
+  await page.screenshot({path:isMobile?"artifacts/contact-mobile.png":"artifacts/contact-desktop.png",fullPage:true});
+});
